@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import StaggerContainer from '@/components/animations/StaggerContainer';
+import FadeUpItem from '@/components/animations/FadeUpItem';
 
 export default function Admissions() {
   const requirements = [
@@ -9,18 +10,22 @@ export default function Admissions() {
   ];
 
   return (
-    <section className="bg-gray-50 py-20 px-6 md:px-12 lg:px-20" id="admissions">
-      <div className="max-w-7xl mx-auto">
+    <section className="bg-gray-10 py-20 px-6 md:px-12 lg:px-20 overflow-hidden" id="admissions">
+      {/* We wrap the entire content container in the Stagger tool */}
+      <StaggerContainer onScroll={true} delay={0.2} stagger={0.2} className="max-w-7xl mx-auto">
         
         {/* Section Header */}
-        <h2 className="text-3xl md:text-4xl font-serif font-bold text-center text-[#A93226] mb-12 max-w-3xl mx-auto leading-tight">
-          Enroll Your Child in the Army of Valiant Christian Scholars
-        </h2>
+        <FadeUpItem>
+          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center text-[#A93226] mb-12 max-w-3xl mx-auto leading-tight">
+            Enroll Your Child in the Army of Valiant Christian Scholars
+          </h2>
+        </FadeUpItem>
         
         <div className="grid md:grid-cols-3 gap-8">
           
           {/* Requirements Card */}
-          <div className="bg-white p-8 rounded-xl shadow-lg border-t-4 border-[#3B2353] hover:shadow-xl transition-shadow duration-300">
+          {/* We pass the Tailwind classes directly to FadeUpItem so it acts as the card wrapper */}
+          <FadeUpItem className="bg-white p-8 rounded-xl shadow-lg border-t-4 border-[#3B2353] hover:shadow-xl transition-shadow duration-300">
             <h3 className="font-bold text-[#3B2353] text-xl mb-6 flex items-center gap-2">
               {/* Clipboard Icon */}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,10 +44,10 @@ export default function Admissions() {
                 </li>
               ))}
             </ul>
-          </div>
+          </FadeUpItem>
 
           {/* Important Notice Card */}
-          <div className="md:col-span-2 bg-red-50 p-8 md:p-10 rounded-xl border-2 border-dashed border-[#A93226] relative overflow-hidden group">
+          <FadeUpItem className="md:col-span-2 bg-red-50 p-8 md:p-10 rounded-xl border-2 border-dashed border-[#A93226] relative overflow-hidden group">
             
             {/* Background Watermark SVG (Bank/Institution) */}
             <svg 
@@ -71,21 +76,23 @@ export default function Admissions() {
                 Ensure all payments are made through our secure online portal or designated banking partners to secure your child's placement. Beware of fraudulent accounts.
               </p>
               
-              {/* Linked CTA Button */}
-              <Link 
-                href="/apply" 
+              {/* Native HTML anchor tag handles the external breakdown flawlessly */}
+              <a 
+                href="https://form.typeform.com/to/wYmY6RIy" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center justify-center bg-[#A93226] text-white px-8 py-3.5 rounded-md font-bold tracking-wide hover:bg-[#8B281F] transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5"
               >
                 Start Online Application
                 <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
-              </Link>
+              </a>
             </div>
-          </div>
+          </FadeUpItem>
 
         </div>
-      </div>
+      </StaggerContainer>
     </section>
   );
 }

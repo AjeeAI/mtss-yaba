@@ -26,13 +26,12 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_NG",
-    url: "https://mtssonikeyaba.sch.ng", // Update this when you buy your actual domain
+    url: "https://mtssonikeyaba.sch.ng", 
     siteName: "MTSS Onike Yaba",
     title: "Mountain Top Secondary School | Admissions Open",
     description: "Start your child's journey at MTSS. Academic excellence meets spiritual fire.",
     images: [
       {
-        // Using the Cloudinary URL you provided earlier
         url: "https://res.cloudinary.com/dzt3imk5w/image/upload/v1778089560/imgi_19_655211024_18082785305364612_6761735849518066849_n_xd77bt.jpg", 
         width: 1200,
         height: 630,
@@ -48,13 +47,6 @@ export const metadata: Metadata = {
     description: "Enroll your child in the Army of Valiant Christian Scholars.",
     images: ["https://res.cloudinary.com/dzt3imk5w/image/upload/v1778089560/imgi_19_655211024_18082785305364612_6761735849518066849_n_xd77bt.jpg"],
   },
-
-  // Favicon/Icons
-  icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/apple-touch-icon.png", 
-  },
 };
 
 export default function RootLayout({
@@ -67,9 +59,23 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
     >
-      {/* Added MTSS custom highlight colors for text selection */}
-      <body className="min-h-full flex flex-col bg-white text-gray-900 selection:bg-[#D4AF37] selection:text-[#3B2353]">
-        {children}
+      {/* Removed bg-white from the body and added relative positioning */}
+      <body className="min-h-full flex flex-col text-gray-900 selection:bg-[#D4AF37] selection:text-[#3B2353] relative">
+        
+        {/* 1. Global Fixed Parallax Background */}
+        <div 
+          className="fixed inset-0 z-[-2] bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url("https://res.cloudinary.com/dzt3imk5w/image/upload/v1779699881/ChatGPT_Image_May_25_2026_12_29_14_AM_ruhvv5.png")` }}
+        />
+        
+        {/* 2. Global Frosted Overlay (90% white with a slight blur) */}
+        <div className="fixed inset-0 z-[-1] bg-white/90 backdrop-blur-[2px]" />
+        
+        {/* 3. Your Website Content */}
+        <div className="relative z-0 flex flex-col min-h-screen">
+          {children}
+        </div>
+        
       </body>
     </html>
   );
