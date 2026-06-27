@@ -60,7 +60,7 @@ export default function FounderMessage() {
             
             <div className="relative h-[550px] w-full rounded-lg overflow-hidden shadow-2xl">
               <img 
-                src="https://res.cloudinary.com/dzt3imk5w/image/upload/v1778091570/olukoya_irrnct.png" 
+                src="https://res.cloudinary.com/dzt3imk5w/image/upload/v1782462437/IMG-20260625-WA0014_ydze7t.jpg" 
                 alt="Dr. D.K. Olukoya" 
                 className="object-cover w-full h-full" 
               />

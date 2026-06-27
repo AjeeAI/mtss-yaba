@@ -169,9 +169,6 @@ export default function Navbar() {
               );
             })}
             <div className="mt-4 pt-4 border-t border-gray-200/50 flex flex-col space-y-3 px-3">
-              <Link href="/login" onClick={() => setIsOpen(false)} className="text-center px-5 py-3 text-sm font-bold border border-[#3B2353] text-[#3B2353] rounded hover:bg-[#3B2353] hover:text-white transition-colors">
-                Portal Login
-              </Link>
               <Link 
                 href="/#admissions" 
                 onClick={(e) => handleNavClick(e, '/#admissions', 'admissions')} 

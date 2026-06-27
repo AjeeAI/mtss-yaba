@@ -47,18 +47,28 @@ export default function Hero() {
 
       {/* 3. Foreground Content with Framer Motion Stagger */}
       {/* Notice we use your original text here now! */}
+      {/* 3. Foreground Content with Framer Motion Stagger */}
       <StaggerContainer delay={0.3} stagger={0.2} className="relative z-10 max-w-5xl mx-auto px-6 flex flex-col items-center pb-12 text-center">
         
+        {/* NEW: The Eyebrow (School Name) */}
         <FadeUpItem>
-          <h1 className="text-4xl md:text-5xl lg:text-[56px] font-serif font-bold text-white my-10 mb-6 leading-[1.15] drop-shadow-lg">
+          <span className="block text-[#D4AF37] font-extrabold tracking-widest text-sm md:text-base mb-4 mt-10 uppercase drop-shadow-md">
+            Mountain Top Secondary School
+          </span>
+        </FadeUpItem>
+
+        <FadeUpItem>
+          {/* Adjusted margins (removed my-10) so it sits closer to the eyebrow */}
+          <h1 className="text-4xl md:text-5xl lg:text-[56px] font-serif font-bold text-white mb-6 leading-[1.15] drop-shadow-lg">
             Raising a Total Child: <br className="hidden md:block"/>
             <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-white">Spiritually, Academically, and Morally Sound.</span>
           </h1>
         </FadeUpItem>
         
         <FadeUpItem>
+          {/* UPDATED: Shortened paragraph to avoid repeating the school name! */}
           <p className="text-lg md:text-xl text-white/95 font-light mb-10 max-w-3xl drop-shadow-md">
-            Welcome to Mountain Top Secondary School, where academic excellence meets spiritual fire.
+            Welcome to a community where exceptional academic excellence meets unshakeable spiritual fire.
           </p>
         </FadeUpItem>
         
