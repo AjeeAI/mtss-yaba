@@ -1,122 +1,251 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import { useInfiniteQuery } from '@tanstack/react-query';
-
-const CATEGORIES = ["All", "Academics", "Spiritual Life", "Campus & Hostels", "Sports & Clubs"];
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 export default function GalleryClientFilter() {
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeCategory, setActiveCategory] = useState<string>("");
+  const [activeAlbum, setActiveAlbum] = useState<string | null>(null);
 
-  // 1. The fetcher function that talks to our new API route
+  // 1. Fetch Categories
+  const { data: dynamicCategories = [] } = useQuery({
+    queryKey: ['gallery-categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.categories.filter((cat: string) => cat !== "All");
+    }
+  });
+
+  // Auto-select first category
+  useEffect(() => {
+    if (dynamicCategories.length > 0 && !activeCategory) {
+      setActiveCategory(dynamicCategories[0]);
+    }
+  }, [dynamicCategories, activeCategory]);
+
+  // 2. Fetch Images for the Category
   const fetchImages = async ({ pageParam = '' }) => {
     const res = await fetch(`/api/gallery?category=${activeCategory}&cursor=${pageParam}`);
     if (!res.ok) throw new Error('Network response was not ok');
     return res.json();
   };
 
-  // 2. TanStack's Infinite Query Magic
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-  } = useInfiniteQuery({
-    queryKey: ['gallery', activeCategory], // Cache is uniquely separated by category!
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery({
+    queryKey: ['gallery', activeCategory],
     queryFn: fetchImages,
-    getNextPageParam: (lastPage) => lastPage.nextCursor, // Tells TanStack how to get the next batch
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: '',
+    enabled: !!activeCategory,
   });
 
-  // 3. Flatten the pages of data into one single array of images
   const allImages = data ? data.pages.flatMap(page => page.images) : [];
 
+  const groupedAlbums = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    allImages.forEach(img => {
+      const albumName = img.album || "Miscellaneous";
+      if (!groups[albumName]) groups[albumName] = [];
+      groups[albumName].push(img);
+    });
+    return groups;
+  }, [allImages]);
+
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+    setActiveAlbum(null); 
+  };
+
   return (
-    <>
-      {/* Category Filters */}
-      <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-12">
-        {CATEGORIES.map((category) => (
-          <button
-            key={category}
-            onClick={() => setActiveCategory(category)}
-            className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 ${
-              activeCategory === category
-                ? "bg-[#A93226] text-white shadow-md"
-                : "bg-white text-gray-600 border border-gray-200 hover:border-[#A93226] hover:text-[#A93226]"
-            }`}
-          >
-            {category}
-          </button>
-        ))}
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      
+      {/* --- STYLIZED CATEGORY PILLS --- */}
+      <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-16">
+        {dynamicCategories.map((category: string) => {
+          const isActive = activeCategory === category;
+          return (
+            <button
+              key={category}
+              onClick={() => handleCategoryChange(category)}
+              className={`relative px-6 py-2.5 rounded-full text-sm font-semibold tracking-wide transition-all duration-500 overflow-hidden ${
+                isActive 
+                  ? "text-white shadow-[0_8px_30px_rgb(169,50,38,0.3)] scale-105" 
+                  : "text-gray-600 bg-white border border-gray-200 hover:border-transparent hover:shadow-lg hover:-translate-y-0.5"
+              }`}
+            >
+              {/* Animated Background for Active State */}
+              {isActive && (
+                <div className="absolute inset-0 bg-gradient-to-r from-[#A93226] to-[#8E281F] z-0"></div>
+              )}
+              <span className="relative z-10">{category.replace(/_/g, ' ')}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Loading State */}
+      {/* --- LOADING & ERROR STATES --- */}
       {status === 'pending' && (
-        <div className="text-center py-20 text-[#3B2353] font-semibold animate-pulse">
-          Loading gallery...
+        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+          <div className="w-10 h-10 border-4 border-[#A93226]/20 border-t-[#A93226] rounded-full animate-spin"></div>
+          <p className="text-[#3B2353] font-medium animate-pulse">Loading breathtaking moments...</p>
         </div>
       )}
-
-      {/* Error State */}
       {status === 'error' && (
-        <div className="text-center py-20 text-red-600">
-          Error loading images. Please try again.
+        <div className="text-center py-20 bg-red-50 rounded-2xl border border-red-100">
+          <p className="text-red-600 font-medium">We couldn't load the gallery right now.</p>
         </div>
       )}
 
-      {/* Image Grid */}
-      {status === 'success' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {allImages.map((image: any) => (
-            <div 
-              key={image.id} 
-              className="group relative aspect-square rounded-xl overflow-hidden bg-gray-200 shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer"
-            >
-              <Image
-                src={image.src}
-                alt={image.alt}
-                fill
-                unoptimized
-                className="object-cover transform group-hover:scale-110 transition-transform duration-700 ease-in-out"
-                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#3B2353]/90 via-[#3B2353]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                <span className="text-[#D4AF37] text-xs font-bold uppercase tracking-wider mb-1 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                  {image.category}
-                </span>
-                <p className="text-white font-medium transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">
-                  {image.alt}
-                </p>
-              </div>
+      {/* --- VIEW 1: ALBUM GRID (Sleek Cards) --- */}
+      {status === 'success' && !activeAlbum && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 xl:gap-10">
+          {Object.keys(groupedAlbums).length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-32 text-gray-400 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+              <svg className="w-16 h-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-lg font-medium text-gray-500">No albums in this category yet</p>
             </div>
-          ))}
+          ) : (
+            Object.keys(groupedAlbums).map((albumName) => {
+              const albumImages = groupedAlbums[albumName];
+              const coverImage = albumImages[0]; 
+
+              return (
+                <div 
+                  key={albumName} 
+                  onClick={() => setActiveAlbum(albumName)}
+                  className="group cursor-pointer rounded-3xl overflow-hidden bg-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-500 border border-gray-50 flex flex-col"
+                >
+                  {/* Image Container */}
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[#3B2353]/5 to-[#A93226]/5">
+                    {coverImage ? (
+                      <Image
+                        src={coverImage.src}
+                        alt={albumName}
+                        fill
+                        unoptimized
+                        className="object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-50">
+                        <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    
+                    {/* Gradient Overlay for Text Readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500"></div>
+                    
+                    {/* Glassmorphism Badge */}
+                    <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold tracking-wide px-4 py-1.5 rounded-full shadow-lg">
+                      {albumImages.length} {albumImages.length === 1 ? 'Photo' : 'Photos'}
+                    </div>
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-6 sm:p-8 flex-grow flex flex-col justify-between bg-white relative">
+                    <h3 className="text-xl font-bold text-[#3B2353] group-hover:text-[#A93226] transition-colors line-clamp-2">
+                      {albumName.replace(/_/g, ' ')}
+                    </h3>
+                    <div className="flex items-center mt-4 text-sm font-semibold text-gray-400 group-hover:text-[#A93226] transition-colors">
+                      Explore Album 
+                      <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 
-      {/* Empty State */}
-      {status === 'success' && allImages.length === 0 && (
-        <div className="text-center py-20 text-gray-500">
-          <p>More images coming soon to this category!</p>
+      {/* --- VIEW 2: SINGLE ALBUM DETAIL --- */}
+      {status === 'success' && activeAlbum && (
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out">
+          
+          {/* Header Row */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 pb-6 border-b border-gray-100 gap-4">
+            <div>
+              <button 
+                onClick={() => setActiveAlbum(null)}
+                className="group flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#A93226] transition-colors mb-4"
+              >
+                <div className="p-1.5 rounded-full bg-gray-50 group-hover:bg-[#A93226]/10 transition-colors">
+                  <svg className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </div>
+                Back to Albums
+              </button>
+              <h2 className="text-4xl font-serif font-bold text-[#3B2353] capitalize tracking-tight">
+                {activeAlbum.replace(/_/g, ' ')}
+              </h2>
+            </div>
+            
+            <div className="flex items-center gap-2 text-sm font-bold text-[#A93226] bg-[#A93226]/5 px-5 py-2.5 rounded-full border border-[#A93226]/10 w-fit">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {groupedAlbums[activeAlbum]?.length} Shots
+            </div>
+          </div>
+
+          {/* Photos Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {groupedAlbums[activeAlbum].map((image: any, i: number) => (
+              <div 
+                key={image.id} 
+                className="group relative aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 cursor-zoom-in"
+                style={{ animationDelay: `${i * 50}ms` }} // Slight stagger effect
+              >
+                <Image
+                  src={image.src}
+                  alt={image.alt}
+                  fill
+                  unoptimized
+                  className="object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                />
+                {/* Darken slightly on hover for focus */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Load More Button */}
-      {hasNextPage && (
-        <div className="mt-16 flex justify-center">
+      {/* --- LOAD MORE BUTTON --- */}
+      {hasNextPage && activeAlbum && (
+        <div className="mt-20 flex justify-center pb-12">
           <button 
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
-            className={`border-2 border-[#D4AF37] font-bold py-3 px-10 rounded transition-all duration-300 shadow-sm ${
+            className={`flex items-center gap-2 px-10 py-3.5 rounded-full font-bold text-sm tracking-wide transition-all duration-300 ${
               isFetchingNextPage 
-                ? "bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed" 
-                : "bg-white text-[#3B2353] hover:bg-[#D4AF37] hover:text-white hover:shadow-md"
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                : "bg-white text-[#3B2353] border border-gray-200 hover:border-[#3B2353] hover:shadow-xl hover:-translate-y-1"
             }`}
           >
-            {isFetchingNextPage ? 'Loading...' : 'Load More Images'}
+            {isFetchingNextPage ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Loading...
+              </>
+            ) : (
+              'Load More Discoveries'
+            )}
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }

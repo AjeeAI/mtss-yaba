@@ -98,6 +98,7 @@ export default function CampusGallery() {
                         src={src}
                         alt={`Campus Life ${index + 1}`}
                         fill
+                        unoptimized // <-- Add this to prevent Next.js 500 timeout errors!
                         className="object-cover"
                         sizes="(max-width: 640px) 96px, (max-width: 1024px) 128px, 160px"
                       />

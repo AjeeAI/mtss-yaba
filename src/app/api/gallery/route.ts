@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// 🚨 Force Next.js to NEVER cache this route during development/debugging
+export const dynamic = 'force-dynamic'; 
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const cursor = searchParams.get('cursor') || '';
@@ -9,10 +12,10 @@ export async function GET(request: Request) {
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
-  // 1. Tell Cloudinary to filter by your specific tags directly!
-  let expression = 'folder:"pictures_mtss"';
+  let expression = 'folder:"pictures_mtss/*"';
+  
   if (category !== 'All') {
-    expression += ` AND tags:"${category}"`;
+    expression = `folder:"pictures_mtss/${category}/*"`;
   }
 
   const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/search`;
@@ -26,12 +29,11 @@ export async function GET(request: Request) {
     },
     body: JSON.stringify({
       expression,
-      with_field: 'tags',
       sort_by: [{ created_at: 'desc' }],
-      max_results: 16, // Only fetch 16 images per network request!
-      next_cursor: cursor || undefined, // The secret to Cloudinary pagination
+      max_results: 30, 
+      next_cursor: cursor || undefined, 
     }),
-    next: { revalidate: 3600 } 
+    cache: 'no-store' // 🚨 CRITICAL FIX: Replaces next: { revalidate... }
   });
 
   if (!response.ok) {
@@ -40,19 +42,42 @@ export async function GET(request: Request) {
 
   const data = await response.json();
 
-  // 2. Transform data for the frontend
+// 2. Transform data for the frontend (Asset Folders Fix!)
   const images = data.resources?.map((img: any) => {
-    const assignedCategory = img.tags && img.tags.length > 0 ? img.tags[0] : "Campus & Hostels";
+    
+    // Check for the new Asset Folder property, fallback to old folder property, or default to empty string
+    const actualFolder = img.asset_folder || img.folder || "";
+    
+    // DEBUG 3.0: Let's verify the real virtual folder path!
+    console.log(`🔍 REAL FOLDER PATH: ${actualFolder}`);
+    
+    let albumName = "Miscellaneous";
+    
+    // If Cloudinary provides the virtual folder string (e.g., "pictures_mtss/Excursions/Olumo")
+    if (actualFolder) {
+      const folderParts = actualFolder.split('/');
+      
+      // If the image is at least 3 levels deep (Root -> Category -> Album)
+      if (folderParts.length >= 3) {
+        albumName = folderParts[folderParts.length - 1]; // Grabs the very last folder name! ("Olumo")
+      } 
+      // If the image is only 2 levels deep (Root -> Category) and missing an album
+      else if (folderParts.length === 2) {
+        albumName = "Uncategorized"; 
+      }
+    }
+
     return {
       id: img.public_id,
       src: img.secure_url,
-      category: assignedCategory,
-      alt: `MTSS Gallery Image`
+      album: albumName, 
+      category: category === 'All' ? 'MTSS Gallery' : category,
+      alt: img.public_id || 'MTSS Gallery Image' 
     };
   }) || [];
 
   return NextResponse.json({
     images,
-    nextCursor: data.next_cursor || null // If there are more images, Cloudinary sends this token
+    nextCursor: data.next_cursor || null 
   });
 }
