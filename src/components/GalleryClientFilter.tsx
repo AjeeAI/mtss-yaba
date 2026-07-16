@@ -98,8 +98,9 @@ export default function GalleryClientFilter() {
       )}
 
       {/* --- VIEW 1: ALBUM GRID (Sleek Cards) --- */}
+      {/* --- VIEW 1: ALBUM GRID (Sleek Cards) --- */}
       {status === 'success' && !activeAlbum && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 xl:gap-10">
+        <div className="flex flex-wrap justify-center gap-8 xl:gap-10">
           {Object.keys(groupedAlbums).length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-32 text-gray-400 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
               <svg className="w-16 h-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -116,7 +117,8 @@ export default function GalleryClientFilter() {
                 <div 
                   key={albumName} 
                   onClick={() => setActiveAlbum(albumName)}
-                  className="group cursor-pointer rounded-3xl overflow-hidden bg-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-500 border border-gray-50 flex flex-col"
+                  // 🚨 FIX: Using flex-none + width constraint to ensure card stays at a perfect size
+                  className="group flex-none w-[320px] sm:w-[350px] cursor-pointer rounded-3xl overflow-hidden bg-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-500 border border-gray-50 flex flex-col"
                 >
                   {/* Image Container */}
                   <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[#3B2353]/5 to-[#A93226]/5">
@@ -126,8 +128,8 @@ export default function GalleryClientFilter() {
                         alt={albumName}
                         fill
                         unoptimized
-                        className="object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+                        sizes="(max-width: 640px) 100vw, 350px"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-50">
@@ -137,17 +139,14 @@ export default function GalleryClientFilter() {
                       </div>
                     )}
                     
-                    {/* Gradient Overlay for Text Readability */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500"></div>
                     
-                    {/* Glassmorphism Badge */}
                     <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold tracking-wide px-4 py-1.5 rounded-full shadow-lg">
                       {albumImages.length} {albumImages.length === 1 ? 'Photo' : 'Photos'}
                     </div>
                   </div>
 
-                  {/* Card Content */}
-                  <div className="p-6 sm:p-8 flex-grow flex flex-col justify-between bg-white relative">
+                  <div className="p-8 flex-grow flex flex-col justify-between bg-white relative">
                     <h3 className="text-xl font-bold text-[#3B2353] group-hover:text-[#A93226] transition-colors line-clamp-2">
                       {albumName.replace(/_/g, ' ')}
                     </h3>
@@ -164,7 +163,7 @@ export default function GalleryClientFilter() {
           )}
         </div>
       )}
-
+      
       {/* --- VIEW 2: SINGLE ALBUM DETAIL --- */}
       {status === 'success' && activeAlbum && (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out">

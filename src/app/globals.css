@@ -1,10 +1,19 @@
 @import "tailwindcss";
-
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 @theme {
-  /* School Branding derived from flyer and official sites */
+  /* School Branding */
   --color-mt-purple: #4a148c;
   --color-mt-maroon: #800000;
   --color-mt-gold: #d4af37;
+  
+  /* EduAdmin Premium Palette */
+  --color-admin-primary: #250d3d;
+  --color-admin-primary-container: #3b2353;
+  --color-admin-gold: #D4AF37;
+  --color-admin-gold-hover: #c5a130;
+  --color-admin-error: #d32f2f;
+  --color-admin-bg-page: #f8f9fa;
+  --color-admin-surface: #ffffff;
   
   --font-serif: var(--font-playfair), serif;
   --font-sans: var(--font-inter), sans-serif;
