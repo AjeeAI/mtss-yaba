@@ -1,83 +1,50 @@
 import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase/client';
 
-// 🚨 Force Next.js to NEVER cache this route during development/debugging
-export const dynamic = 'force-dynamic'; 
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const cursor = searchParams.get('cursor') || '';
+  const cursor = searchParams.get('cursor') ? parseInt(searchParams.get('cursor')!) : 0;
   const category = searchParams.get('category') || 'All';
+  const limit = 30;
 
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  try {
+    let query = supabase
+      .from('gallery_media')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(cursor, cursor + limit - 1);
 
-  let expression = 'folder:"pictures_mtss/*"';
-  
-  if (category !== 'All') {
-    expression = `folder:"pictures_mtss/${category}/*"`;
-  }
-
-  const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/search`;
-  const basicAuth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Basic ${basicAuth}`
-    },
-    body: JSON.stringify({
-      expression,
-      sort_by: [{ created_at: 'desc' }],
-      max_results: 30, 
-      next_cursor: cursor || undefined, 
-    }),
-    cache: 'no-store' // 🚨 CRITICAL FIX: Replaces next: { revalidate... }
-  });
-
-  if (!response.ok) {
-    return NextResponse.json({ error: 'Failed to fetch from Cloudinary' }, { status: 500 });
-  }
-
-  const data = await response.json();
-
-// 2. Transform data for the frontend (Asset Folders Fix!)
-  const images = data.resources?.map((img: any) => {
-    
-    // Check for the new Asset Folder property, fallback to old folder property, or default to empty string
-    const actualFolder = img.asset_folder || img.folder || "";
-    
-    // DEBUG 3.0: Let's verify the real virtual folder path!
-    console.log(`🔍 REAL FOLDER PATH: ${actualFolder}`);
-    
-    let albumName = "Miscellaneous";
-    
-    // If Cloudinary provides the virtual folder string (e.g., "pictures_mtss/Excursions/Olumo")
-    if (actualFolder) {
-      const folderParts = actualFolder.split('/');
-      
-      // If the image is at least 3 levels deep (Root -> Category -> Album)
-      if (folderParts.length >= 3) {
-        albumName = folderParts[folderParts.length - 1]; // Grabs the very last folder name! ("Olumo")
-      } 
-      // If the image is only 2 levels deep (Root -> Category) and missing an album
-      else if (folderParts.length === 2) {
-        albumName = "Uncategorized"; 
-      }
+    // Apply category filter if it's not "All"
+    if (category !== 'All') {
+      query = query.eq('category', category);
     }
 
-    return {
-      id: img.public_id,
-      src: img.secure_url,
-      album: albumName, 
-      category: category === 'All' ? 'MTSS Gallery' : category,
-      alt: img.public_id || 'MTSS Gallery Image' 
-    };
-  }) || [];
+    const { data, error } = await query;
 
-  return NextResponse.json({
-    images,
-    nextCursor: data.next_cursor || null 
-  });
+    if (error) throw error;
+
+    // Transform the data to match what GalleryClientFilter expects
+    const images = data.map((media) => ({
+      id: media.id,
+      src: media.url,
+      album: media.album,
+      category: media.category,
+      alt: media.alt_text || 'MTSS Gallery Media',
+      mediaType: media.media_type // Passing this down so the frontend knows if it's a video!
+    }));
+
+    // Determine the next cursor for infinite scrolling
+    const nextCursor = data.length === limit ? cursor + limit : null;
+
+    return NextResponse.json({
+      images,
+      nextCursor
+    });
+
+  } catch (error) {
+    console.error("Error fetching gallery media:", error);
+    return NextResponse.json({ error: 'Failed to fetch from database' }, { status: 500 });
+  }
 }

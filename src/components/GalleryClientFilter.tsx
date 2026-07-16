@@ -26,20 +26,23 @@ export default function GalleryClientFilter() {
   }, [dynamicCategories, activeCategory]);
 
   // 2. Fetch Images for the Category
-  const fetchImages = async ({ pageParam = '' }) => {
-    const res = await fetch(`/api/gallery?category=${activeCategory}&cursor=${pageParam}`);
-    if (!res.ok) throw new Error('Network response was not ok');
-    return res.json();
-  };
+ // Inside components/GalleryClientFilter.tsx
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery({
-    queryKey: ['gallery', activeCategory],
-    queryFn: fetchImages,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialPageParam: '',
-    enabled: !!activeCategory,
-  });
+const fetchImages = async ({ pageParam = 0 }) => {
+  // We point to our new API route which queries Supabase
+  const res = await fetch(`/api/gallery?category=${activeCategory}&cursor=${pageParam}`);
+  if (!res.ok) throw new Error('Network response was not ok');
+  return res.json();
+};
 
+const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery({
+  queryKey: ['gallery', activeCategory],
+  queryFn: fetchImages,
+  // The API now returns a numeric cursor, so we use 0 as the initial page
+  initialPageParam: 0,
+  getNextPageParam: (lastPage) => lastPage.nextCursor,
+  enabled: !!activeCategory,
+});
   const allImages = data ? data.pages.flatMap(page => page.images) : [];
 
   const groupedAlbums = useMemo(() => {
