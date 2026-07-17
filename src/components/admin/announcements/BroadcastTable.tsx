@@ -1,13 +1,14 @@
 import React from 'react';
 import { Broadcast } from '@/types/broadcast';
-import { List, Filter, RefreshCw, Clock, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { List, Filter, RefreshCw, Clock, Trash2, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Props {
   broadcasts: Broadcast[];
   onDelete: (id: string | number) => void;
+  onEdit: (broadcast: Broadcast) => void; // New prop added
 }
 
-export default function BroadcastsTable({ broadcasts, onDelete }: Props) {
+export default function BroadcastsTable({ broadcasts, onDelete, onEdit }: Props) {
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden h-full flex flex-col">
       
@@ -63,13 +64,23 @@ export default function BroadcastsTable({ broadcasts, onDelete }: Props) {
                     )}
                   </td>
                   <td className="py-4 px-6 text-right">
-                    <button 
-                      onClick={() => onDelete(broadcast.id)}
-                      className="text-gray-400 hover:text-admin-error p-1.5 rounded hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" 
-                      title="Delete"
-                    >
-                      <Trash2 size={20} />
-                    </button>
+                    {/* Actions container: only visible on row hover */}
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => onEdit(broadcast)}
+                        className="text-gray-400 hover:text-admin-primary p-1.5 rounded hover:bg-admin-primary/10 transition-colors" 
+                        title="Edit"
+                      >
+                        <Pencil size={20} />
+                      </button>
+                      <button 
+                        onClick={() => onDelete(broadcast.id)}
+                        className="text-gray-400 hover:text-admin-error p-1.5 rounded hover:bg-red-50 transition-colors" 
+                        title="Delete"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

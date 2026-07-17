@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Megaphone, AlertTriangle } from 'lucide-react';
-
+import { supabase } from '@/lib/supabase/client';
 import { Broadcast } from '@/types/broadcast';
 import CreateForm from '@/components/admin/announcements/CreateForm';
 import BroadcastsTable from '@/components/admin/announcements/BroadcastTable';
@@ -11,56 +11,62 @@ export default function AnnouncementsPage() {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingBroadcast, setEditingBroadcast] = useState<Broadcast | null>(null);
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return null;
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+  };
+
+  async function fetchBroadcasts() {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedData: Broadcast[] = (data || []).map((item) => ({
+        id: item.id,
+        title: item.title,
+        body: item.message,
+        createdAt: formatDate(item.created_at) || '',
+        expiresAt: formatDate(item.expires_at)
+      }));
+
+      setBroadcasts(formattedData);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch announcements');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchBroadcasts() {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        const mockData: Broadcast[] = [
-          { 
-            id: 1, 
-            title: 'Campus Closure - Extreme Weather', 
-            body: 'All classes suspended for Tuesday due to impending snowstorm.', 
-            createdAt: 'Oct 24, 2023', 
-            expiresAt: 'Oct 26, 2023' 
-          },
-          { 
-            id: 2, 
-            title: 'Faculty Meeting Moved to Hall B', 
-            body: 'The monthly alignment meeting venue has been changed.', 
-            createdAt: 'Oct 22, 2023', 
-            expiresAt: null 
-          },
-          { 
-            id: 3, 
-            title: 'Q3 Grade Submissions Deadline', 
-            body: 'Reminder: All final grades must be logged by Friday EOD.', 
-            createdAt: 'Oct 20, 2023', 
-            expiresAt: 'Oct 30, 2023' 
-          }
-        ];
-        
-        setBroadcasts(mockData);
-      } catch (err: any) {
-        setError(err.message || 'An unexpected error occurred');
-      } finally {
-        setLoading(false); 
-      }
-    }
-    
     fetchBroadcasts();
   }, []);
 
-  const handleAddBroadcast = (newBroadcast: Broadcast) => {
-    setBroadcasts(prev => [newBroadcast, ...prev]);
+  const handleAddBroadcast = () => {
+    fetchBroadcasts();
+    setEditingBroadcast(null);
   };
 
   const handleDeleteBroadcast = async (id: string | number) => {
-    setBroadcasts(prev => prev.filter(broadcast => broadcast.id !== id));
+    if (!confirm('Are you sure you want to delete this?')) return;
+    try {
+      const { error } = await supabase.from('announcements').delete().eq('id', id);
+      if (error) throw error;
+      setBroadcasts(prev => prev.filter(broadcast => broadcast.id !== id));
+    } catch (err: any) {
+      alert("Failed to delete announcement: " + err.message);
+    }
   };
 
   return (
@@ -75,7 +81,11 @@ export default function AnnouncementsPage() {
         {/* Left Column: Create Form & Stats */}
         <div className="lg:col-span-4 flex flex-col gap-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           
-          <CreateForm onAdd={handleAddBroadcast} />
+          <CreateForm 
+            onAdd={handleAddBroadcast} 
+            editingBroadcast={editingBroadcast}
+            onCancelEdit={() => setEditingBroadcast(null)}
+          />
 
           {/* Mini Stats Card */}
           <div className="bg-admin-primary rounded-lg shadow-md p-6 text-white border border-admin-primary-container">
@@ -89,7 +99,6 @@ export default function AnnouncementsPage() {
               </div>
             </div>
           </div>
-
         </div>
 
         {/* Right Column: Data Table */}
@@ -104,7 +113,7 @@ export default function AnnouncementsPage() {
               <AlertTriangle size={48} className="text-admin-error mb-4" />
               <p className="text-admin-error font-bold text-lg mb-4">{error}</p>
               <button 
-                onClick={() => window.location.reload()} 
+                onClick={fetchBroadcasts} 
                 className="bg-admin-error text-white px-6 py-2 rounded font-bold hover:opacity-90 transition-opacity"
               >
                 Try Again
@@ -113,7 +122,8 @@ export default function AnnouncementsPage() {
           ) : (
             <BroadcastsTable 
               broadcasts={broadcasts} 
-              onDelete={handleDeleteBroadcast} 
+              onDelete={handleDeleteBroadcast}
+              onEdit={(b) => setEditingBroadcast(b)}
             />
           )}
         </div>
