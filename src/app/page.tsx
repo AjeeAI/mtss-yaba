@@ -10,7 +10,6 @@ import CiscoBadge from '@/components/CiscoBadge';
 
 export default function Home() {
   return (
-    // REMOVED 'bg-white' from this line!
     <main className="min-h-screen">
       <Navbar />
       <Hero />
@@ -21,6 +20,8 @@ export default function Home() {
       <Testimonials />
       <CiscoBadge/>
       <Footer />
+      
+      {/* ❌ REMOVE <AnnouncementModal /> from here! */}
     </main>
   );
 }

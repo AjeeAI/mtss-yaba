@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Trash2, Upload, Video, Image as ImageIcon, X, Loader2, ImagePlus, ArrowLeft, FolderOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
-import heic2any from 'heic2any';
+
 
 export default function AdminGalleryPage() {
   // Grid & Hierarchy State
@@ -129,6 +129,9 @@ export default function AdminGalleryPage() {
       if (isHeic) {
         const buffer = await selectedFile.arrayBuffer();
         const blobData = new Blob([buffer], { type: 'image/heic' });
+
+        // ✅ DYNAMICALLY IMPORT IT HERE ONLY WHEN NEEDED
+        const heic2any = (await import('heic2any')).default;
 
         const convertedBlob = await heic2any({
           blob: blobData,
